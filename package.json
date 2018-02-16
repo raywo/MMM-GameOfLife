@@ -1,0 +1,36 @@
+{
+  "name": "MMM-GameOfLife",
+  "version": "0.0.1",
+  "description": "A Game of Life module for MagicMirror 2.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raywo/MMM-GameOfLife"
+  },
+  "keywords": [
+    "magic mirror",
+    "magic mirror 2",
+    "smart mirror",
+    "public transport",
+    "public transport Leipzig",
+    "module"
+  ],
+  "author": {
+    "name": "raywo",
+    "email": "ray@skillbird.de",
+    "url": "https://github.com/raywo"
+  },
+  "contributors": "https://github.com/raywo/MMM-GameOfLife/graphs/contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/raywo/MMM-GameOfLife/issues"
+  },
+  "homepage": "https://github.com/raywo/MMM-GameOfLife",
+  "engines": {
+    "node": ">=7"
+  },
+  "dependencies": {
+    "lodash.isobject": "^3.0.2",
+    "stylelint": "^8.4.0",
+    "p5": "latest"
+  }
+}
