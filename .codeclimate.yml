@@ -1,4 +1,4 @@
-engines:
+plugins:
   markdownlint:
     enabled: true
     # ... CONFIG CONTENT ...
