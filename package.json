@@ -28,9 +28,5 @@
   "engines": {
     "node": ">=7"
   },
-  "dependencies": {
-    "lodash.isobject": "^3.0.2",
-    "stylelint": "^8.4.0",
-    "p5": "latest"
-  }
+  "dependencies": {}
 }
