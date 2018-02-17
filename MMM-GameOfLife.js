@@ -24,10 +24,10 @@ Module.register("MMM-GameOfLife", {
 
   getScripts: function() {
     return [
-      "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js",
-      this.file("core/game_of_life.js")
+      "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js"
     ];
   },
+
 
   notificationReceived: function(notification, payload, sender) {
     if (notification === "DOM_OBJECTS_CREATED") {
@@ -37,6 +37,7 @@ Module.register("MMM-GameOfLife", {
       new p5(sketch, "gameOfLifeWrapper");
     }
   },
+
 
   makeSketch: function(conf) {
     return function(pFive) {
@@ -58,13 +59,12 @@ Module.register("MMM-GameOfLife", {
 
       pFive.setup = function() {
         pFive.frameRate(desiredFrameRate);
-        let canvas = pFive.createCanvas(canvasWidth, canvasHeight);
-        canvas.parent("gameOfLifeWrapper");
+        pFive.createCanvas(canvasWidth, canvasHeight);
 
         lastGenGrid = makeGrid(rows, cols);
         currentGenGrid = makeGrid(rows, cols);
         fillGridRandomly(currentGenGrid);
-      }
+      };
 
       pFive.draw = function() {
         let notAlifeColor = pFive.color(notAliveColorCode);
@@ -73,13 +73,13 @@ Module.register("MMM-GameOfLife", {
         drawGrid(currentGenGrid);
         let nextGenGrid = computeNextGeneration(currentGenGrid);
 
-        if (gridsEqual(nextGenGrid, currentGenGrid) || gridsEqual(nextGenGrid, lastGenGrid)) {
+        if (representingSameState(nextGenGrid, currentGenGrid) || representingSameState(nextGenGrid, lastGenGrid)) {
           fillGridRandomly(currentGenGrid);
         } else {
           lastGenGrid = currentGenGrid;
           currentGenGrid = nextGenGrid;
         }
-      }
+      };
 
 
       /*
@@ -134,20 +134,25 @@ Module.register("MMM-GameOfLife", {
 
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < cols; j++) {
-            let currentState = currentGen[i][j];
-            let aliveNeighbors = countAliveNeighbors(currentGen, i, j);
-
-            if (currentState === 0 && aliveNeighbors === 3) {
-              nextGen[i][j] = 1;
-            } else if (currentState === 1 && (aliveNeighbors < 2 || aliveNeighbors > 3)) {
-              nextGen[i][j] = 0;
-            } else {
-              nextGen[i][j] = currentState;
-            }
+            computeNextGenCell(i, j, currentGen, nextGen);
           }
         }
 
         return nextGen;
+      }
+
+
+      function computeNextGenCell(i, j, currentGen, nextGen) {
+        let currentState = currentGen[i][j];
+        let aliveNeighbors = countAliveNeighbors(currentGen, i, j);
+
+        if (currentState === 0 && aliveNeighbors === 3) {
+          nextGen[i][j] = 1;
+        } else if (currentState === 1 && (aliveNeighbors < 2 || aliveNeighbors > 3)) {
+          nextGen[i][j] = 0;
+        } else {
+          nextGen[i][j] = currentState;
+        }
       }
 
 
@@ -169,21 +174,9 @@ Module.register("MMM-GameOfLife", {
       }
 
 
-      function gridsEqual(leftGrid, rightGrid) {
-        if (!rightGrid) {
-          return false;
-        }
-
-        if (leftGrid.length !== rightGrid.length) {
-          return false;
-        }
-
+      function representingSameState(leftGrid, rightGrid) {
         for (let i = 0; i < leftGrid.length; i++) {
-          if (leftGrid[i].length !== rightGrid[i].length) {
-            return false;
-          }
-
-          for (let j = 0; j < leftGrid[i].length; j++) {
+          for (let j = 0; j < leftGrid.length; j++) {
             if (leftGrid[i][j] !== rightGrid[i][j]) {
               return false;
             }
@@ -192,7 +185,6 @@ Module.register("MMM-GameOfLife", {
 
         return true;
       }
-
     };
   }
 });
