@@ -15,6 +15,12 @@ Module.register("MMM-GameOfLife", {
   },
 
 
+  start: function() {
+    Log.info("Starting module: " + this.name);
+    this.sanitizeConfig();
+  },
+
+
   getDom: function() {
     let wrapper = document.createElement("div");
     wrapper.id = "gameOfLifeWrapper";
@@ -35,6 +41,25 @@ Module.register("MMM-GameOfLife", {
 
       let sketch = this.makeSketch(this.config);
       new p5(sketch, "gameOfLifeWrapper");
+    }
+  },
+
+
+  sanitizeConfig: function() {
+    if (this.config.desiredFrameRate < 1) {
+      this.config.desiredFrameRate = 1;
+    }
+
+    if (this.config.resolution < 2) {
+      this.config.resolution = 2;
+    }
+
+    if (this.config.canvasWidth < 50) {
+      this.config.canvasWidth = 50;
+    }
+
+    if (this.config.canvasHeight < 50) {
+      this.config.canvasHeight = 50;
     }
   },
 
