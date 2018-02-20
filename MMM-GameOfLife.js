@@ -76,6 +76,7 @@ Module.register("MMM-GameOfLife", {
       let canvasHeight = conf.canvasHeight;
       let notAliveColorCode = conf.notAliveColorCode;
       let aliveColorCode = conf.aliveColorCode;
+      let notAliveColor = getNotAliveColor(notAliveColorCode);
 
       /* computed parameters */
       let rows = canvasWidth / resolution;
@@ -91,9 +92,10 @@ Module.register("MMM-GameOfLife", {
         fillGridRandomly(currentGenGrid);
       };
 
+
       pFive.draw = function() {
-        let notAlifeColor = pFive.color(notAliveColorCode);
-        pFive.background(notAlifeColor);
+        pFive.clear();
+        pFive.background(notAliveColor);
 
         drawGrid(currentGenGrid);
         let nextGenGrid = computeNextGeneration(currentGenGrid);
@@ -110,6 +112,15 @@ Module.register("MMM-GameOfLife", {
       /*
         "Private functions"
        */
+
+      function getNotAliveColor() {
+        if (notAliveColorCode === "transparent") {
+          return pFive.color("rgba(0, 0, 0, 0)");
+        } else {
+          return pFive.color(notAliveColorCode);
+        }
+      }
+
 
       function makeGrid(rows, cols) {
         let array = new Array(rows);
