@@ -10,8 +10,7 @@
     "magic mirror",
     "magic mirror 2",
     "smart mirror",
-    "public transport",
-    "public transport Leipzig",
+    "game of life",
     "module"
   ],
   "author": {
@@ -19,7 +18,9 @@
     "email": "ray@skillbird.de",
     "url": "https://github.com/raywo"
   },
-  "contributors": "https://github.com/raywo/MMM-GameOfLife/graphs/contributors",
+  "contributors": [
+    "https://github.com/raywo/MMM-GameOfLife/graphs/contributors"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/raywo/MMM-GameOfLife/issues"
