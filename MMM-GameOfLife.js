@@ -11,7 +11,8 @@ Module.register("MMM-GameOfLife", {
     canvasWidth: 300,
     canvasHeight: 300,
     notAliveColorCode: "#000",
-    aliveColorCode: "#aaa"
+    aliveColorCode: "#aaa",
+    restartTimer: 600
   },
 
 
@@ -77,10 +78,13 @@ Module.register("MMM-GameOfLife", {
       let notAliveColorCode = conf.notAliveColorCode;
       let aliveColorCode = conf.aliveColorCode;
       let notAliveColor = getNotAliveColor(notAliveColorCode);
+      let restartTimer = conf.restartTimer;
 
       /* computed parameters */
       let rows = canvasWidth / resolution;
       let cols = canvasHeight / resolution;
+      let restartFrameCount = restartTimer * desiredFrameRate;
+      let frameCount = 0;
 
 
       pFive.setup = function() {
@@ -98,9 +102,14 @@ Module.register("MMM-GameOfLife", {
         pFive.background(notAliveColor);
 
         drawGrid(currentGenGrid);
+        frameCount++;
         let nextGenGrid = computeNextGeneration(currentGenGrid);
 
         if (representingSameState(nextGenGrid, currentGenGrid) || representingSameState(nextGenGrid, lastGenGrid)) {
+          frameCount = 0;
+          fillGridRandomly(currentGenGrid);
+        } else if (frameCount == restartFrameCount) {
+          frameCount = 0;
           fillGridRandomly(currentGenGrid);
         } else {
           lastGenGrid = currentGenGrid;
