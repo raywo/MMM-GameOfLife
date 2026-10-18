@@ -1,6 +1,6 @@
 {
   "name": "MMM-GameOfLife",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "description": "A Game of Life module for MagicMirror 2.",
   "repository": {
     "type": "git",
@@ -26,8 +26,13 @@
     "url": "https://github.com/raywo/MMM-GameOfLife/issues"
   },
   "homepage": "https://github.com/raywo/MMM-GameOfLife",
-  "engines": {
-    "node": ">=7"
+  "scripts": {
+    "lint": "eslint ."
   },
-  "dependencies": {}
+  "packageManager": "pnpm@12.6.0",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0"
+  }
 }

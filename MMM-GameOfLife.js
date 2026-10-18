@@ -1,5 +1,3 @@
-"use strict";
-
 Module.register("MMM-GameOfLife", {
 
   // Default module config.
@@ -15,37 +13,37 @@ Module.register("MMM-GameOfLife", {
   },
 
 
-  start: function() {
+  start() {
     Log.info("Starting module: " + this.name);
     this.sanitizeConfig();
   },
 
 
-  getDom: function() {
-    let wrapper = document.createElement("div");
+  getDom() {
+    const wrapper = document.createElement("div");
     wrapper.id = "gameOfLifeWrapper";
 
     return wrapper;
   },
 
-  getScripts: function() {
+  getScripts() {
     return [
       "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js"
     ];
   },
 
 
-  notificationReceived: function(notification, payload, sender) {
+  notificationReceived(notification) {
     if (notification === "DOM_OBJECTS_CREATED") {
       Log.info("DOM objects are created. Starting P5 …");
 
-      let sketch = this.makeSketch(this.config);
+      const sketch = this.makeSketch(this.config);
       new p5(sketch, "gameOfLifeWrapper");
     }
   },
 
 
-  sanitizeConfig: function() {
+  sanitizeConfig() {
     if (this.config.desiredFrameRate < 1) {
       this.config.desiredFrameRate = 1;
     }
@@ -64,23 +62,23 @@ Module.register("MMM-GameOfLife", {
   },
 
 
-  makeSketch: function(conf) {
+  makeSketch(conf) {
     return function(pFive) {
       let currentGenGrid;
       let lastGenGrid;
 
       /* user definable parameters */
-      let desiredFrameRate = conf.desiredFrameRate;
-      let resolution = conf.resolution;
-      let canvasWidth = conf.canvasWidth;
-      let canvasHeight = conf.canvasHeight;
-      let notAliveColorCode = conf.notAliveColorCode;
-      let aliveColorCode = conf.aliveColorCode;
-      let notAliveColor = getNotAliveColor(notAliveColorCode);
+      const desiredFrameRate = conf.desiredFrameRate;
+      const resolution = conf.resolution;
+      const canvasWidth = conf.canvasWidth;
+      const canvasHeight = conf.canvasHeight;
+      const notAliveColorCode = conf.notAliveColorCode;
+      const aliveColorCode = conf.aliveColorCode;
+      const notAliveColor = getNotAliveColor(notAliveColorCode);
 
       /* computed parameters */
-      let rows = canvasWidth / resolution;
-      let cols = canvasHeight / resolution;
+      const rows = canvasWidth / resolution;
+      const cols = canvasHeight / resolution;
 
 
       pFive.setup = function() {
@@ -98,7 +96,7 @@ Module.register("MMM-GameOfLife", {
         pFive.background(notAliveColor);
 
         drawGrid(currentGenGrid);
-        let nextGenGrid = computeNextGeneration(currentGenGrid);
+        const nextGenGrid = computeNextGeneration(currentGenGrid);
 
         if (representingSameState(nextGenGrid, currentGenGrid) || representingSameState(nextGenGrid, lastGenGrid)) {
           fillGridRandomly(currentGenGrid);
@@ -123,7 +121,7 @@ Module.register("MMM-GameOfLife", {
 
 
       function makeGrid(rows, cols) {
-        let array = new Array(rows);
+        const array = new Array(rows);
 
         for (let i = 0; i < rows; i++) {
           array[i] = new Array(cols);
@@ -152,21 +150,21 @@ Module.register("MMM-GameOfLife", {
 
 
       function drawCell(grid, i, j) {
-        let aliveColor = pFive.color(aliveColorCode);
+        const aliveColor = pFive.color(aliveColorCode);
 
         if (grid[i][j] === 1) {
           pFive.fill(aliveColor);
           pFive.stroke(aliveColor);
 
-          let x = i * resolution;
-          let y = j * resolution;
+          const x = i * resolution;
+          const y = j * resolution;
           pFive.rect(x, y, resolution - 1, resolution - 1);
         }
       }
 
 
       function computeNextGeneration(currentGen) {
-        let nextGen = makeGrid(rows, cols);
+        const nextGen = makeGrid(rows, cols);
 
         for (let i = 0; i < rows; i++) {
           for (let j = 0; j < cols; j++) {
@@ -179,8 +177,8 @@ Module.register("MMM-GameOfLife", {
 
 
       function computeNextGenCell(i, j, currentGen, nextGen) {
-        let currentState = currentGen[i][j];
-        let aliveNeighbors = countAliveNeighbors(currentGen, i, j);
+        const currentState = currentGen[i][j];
+        const aliveNeighbors = countAliveNeighbors(currentGen, i, j);
 
         if (currentState === 0 && aliveNeighbors === 3) {
           nextGen[i][j] = 1;
@@ -197,8 +195,8 @@ Module.register("MMM-GameOfLife", {
 
         for (let i = -1; i < 2; i++) {
           for (let j = -1; j < 2; j++) {
-            let row = (x + i + rows) % rows;
-            let col = (y + j + cols) % cols;
+            const row = (x + i + rows) % rows;
+            const col = (y + j + cols) % cols;
 
             count += grid[row][col];
           }
