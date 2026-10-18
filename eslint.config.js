@@ -2,6 +2,9 @@ const js = require("@eslint/js");
 const globals = require("globals");
 
 module.exports = [
+  {
+    ignores: ["dev/magicmirror/basepath.js"]
+  },
   js.configs.recommended,
   {
     files: ["MMM-GameOfLife.js", "game-of-life.js"],
@@ -39,6 +42,15 @@ module.exports = [
     languageOptions: {
       sourceType: "commonjs",
       globals: globals.node
+    }
+  },
+  {
+    files: ["dev/magicmirror/config*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: {
+        module: "readonly"
+      }
     }
   },
   {

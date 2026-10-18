@@ -1,0 +1,15 @@
+# Runs this module in MagicMirror² (server-only mode) for local testing.
+# Start with `docker compose up`, then open http://localhost:8080.
+# The module configuration lives in dev/magicmirror/config.js. After changing
+# it, run `docker compose up -d --force-recreate`: a plain restart may not see
+# the edited file.
+services:
+  magicmirror:
+    image: karsten13/magicmirror:wolfi-server
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./dev/magicmirror:/opt/magic_mirror/config
+      - ./:/opt/magic_mirror/modules/MMM-GameOfLife:ro
