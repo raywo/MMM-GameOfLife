@@ -14,9 +14,9 @@ function gridFromPicture(...lines) {
   const height = lines.length;
   const grid = GameOfLife.makeGrid(width, height);
 
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      grid[x][y] = lines[y][x] === "#" ? 1 : 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      grid.cells[y * width + x] = lines[y][x] === "#" ? 1 : 0;
     }
   }
 
@@ -50,11 +50,12 @@ describe("gridSize", () => {
 
 
 describe("makeGrid", () => {
-  it("creates width columns of height cells", () => {
+  it("creates width times height dead cells", () => {
     const grid = GameOfLife.makeGrid(3, 5);
 
-    assert.equal(grid.length, 3);
-    assert.ok(grid.every(column => column.length === 5));
+    assert.equal(grid.width, 3);
+    assert.equal(grid.height, 5);
+    assert.deepEqual(grid.cells, new Uint8Array(15));
   });
 });
 
@@ -67,7 +68,10 @@ describe("fillGridRandomly", () => {
 
     GameOfLife.fillGridRandomly(grid, random);
 
-    assert.deepEqual(grid, [[0, 1], [1, 0]]);
+    assert.deepEqual(grid, gridFromPicture(
+      ".#",
+      "#."
+    ));
   });
 });
 
@@ -196,6 +200,34 @@ describe("computeNextGeneration", () => {
     assert.deepEqual(GameOfLife.computeNextGeneration(grid), expected);
   });
 
+  it("writes into the passed next generation and returns it", () => {
+    const horizontal = gridFromPicture(
+      ".....",
+      ".....",
+      ".###.",
+      ".....",
+      "....."
+    );
+    const nextGen = gridFromPicture(
+      "#####",
+      "#####",
+      "#####",
+      "#####",
+      "#####"
+    );
+
+    const result = GameOfLife.computeNextGeneration(horizontal, nextGen);
+
+    assert.equal(result, nextGen);
+    assert.deepEqual(nextGen, gridFromPicture(
+      ".....",
+      "..#..",
+      "..#..",
+      "..#..",
+      "....."
+    ));
+  });
+
   it("does not modify the current generation", () => {
     const grid = gridFromPicture(
       ".....",
@@ -312,6 +344,27 @@ describe("makeRunMonitor", () => {
 
   it("forgets generations older than historyLength", () => {
     assert.equal(generationsUntilStuck(GameOfLife.makeRunMonitor(neverStopping, 2), pulsar), undefined);
+  });
+
+  it("keeps its own copy of generations whose grids are reused", () => {
+    const monitor = GameOfLife.makeRunMonitor(neverStopping);
+    let currentGen = structuredClone(glider);
+    let nextGen = GameOfLife.makeGrid(glider.width, glider.height);
+    let stuckAt;
+
+    monitor.start(currentGen);
+
+    for (let generation = 1; generation <= 10 && !stuckAt; generation++) {
+      GameOfLife.computeNextGeneration(currentGen, nextGen);
+
+      if (monitor.isStuck(nextGen)) {
+        stuckAt = generation;
+      }
+
+      [currentGen, nextGen] = [nextGen, currentGen];
+    }
+
+    assert.equal(stuckAt, undefined);
   });
 
   it("tells apart grids taller than wide that differ beyond the width", () => {

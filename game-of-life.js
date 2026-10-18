@@ -1,9 +1,9 @@
 /*
   Pure game logic without browser or rendering dependencies.
 
-  A grid is indexed as grid[x][y]: the outer array holds one column per cell
-  along the x axis, each column holds one cell per cell along the y axis.
-  A cell is 1 when alive and 0 when dead.
+  A grid holds its width, its height and its cells in one Uint8Array, row by
+  row: the cell at (x, y) is cells[y * width + x], the same layout as the
+  pixels of an ImageData. A cell is 1 when alive and 0 when dead.
  */
 const GameOfLife = {
 
@@ -21,34 +21,29 @@ const GameOfLife = {
 
 
   makeGrid(width, height) {
-    const grid = new Array(width);
-
-    for (let x = 0; x < width; x++) {
-      grid[x] = new Array(height);
-    }
-
-    return grid;
+    return { width, height, cells: new Uint8Array(width * height) };
   },
 
 
   /* random returns a number in [0, 1), like Math.random. */
   fillGridRandomly(grid, random) {
-    for (let x = 0; x < grid.length; x++) {
-      for (let y = 0; y < grid[x].length; y++) {
-        grid[x][y] = Math.floor(random() * 2);
-      }
+    for (let i = 0; i < grid.cells.length; i++) {
+      grid.cells[i] = Math.floor(random() * 2);
     }
   },
 
 
-  computeNextGeneration(currentGen) {
-    const width = currentGen.length;
-    const height = currentGen[0].length;
-    const nextGen = GameOfLife.makeGrid(width, height);
+  /*
+    Writes the generation after currentGen into nextGen and returns it.
+    Passing the previous generation as nextGen lets two grids alternate
+    without allocating a new one per generation.
+   */
+  computeNextGeneration(currentGen, nextGen = GameOfLife.makeGrid(currentGen.width, currentGen.height)) {
+    const { width, height } = currentGen;
 
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
-        nextGen[x][y] = GameOfLife.computeNextGenCell(currentGen, x, y);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        nextGen.cells[y * width + x] = GameOfLife.computeNextGenCell(currentGen, x, y);
       }
     }
 
@@ -57,7 +52,7 @@ const GameOfLife = {
 
 
   computeNextGenCell(currentGen, x, y) {
-    const currentState = currentGen[x][y];
+    const currentState = currentGen.cells[y * currentGen.width + x];
     const aliveNeighbors = GameOfLife.countAliveNeighbors(currentGen, x, y);
 
     if (currentState === 0 && aliveNeighbors === 3) {
@@ -72,20 +67,18 @@ const GameOfLife = {
 
   /* The grid wraps around at its edges. */
   countAliveNeighbors(grid, x, y) {
-    const width = grid.length;
-    const height = grid[0].length;
+    const { width, height, cells } = grid;
     let count = 0;
 
-    for (let i = -1; i < 2; i++) {
-      for (let j = -1; j < 2; j++) {
-        const neighborX = (x + i + width) % width;
-        const neighborY = (y + j + height) % height;
+    for (let j = -1; j < 2; j++) {
+      const rowStart = ((y + j + height) % height) * width;
 
-        count += grid[neighborX][neighborY];
+      for (let i = -1; i < 2; i++) {
+        count += cells[rowStart + (x + i + width) % width];
       }
     }
 
-    count -= grid[x][y];
+    count -= cells[y * width + x];
 
     return count;
   },
@@ -101,31 +94,52 @@ const GameOfLife = {
     lifes and oscillators up to that period, or when it has lasted
     maxGenerations generations. The limit catches what the history misses,
     such as a glider whose period on the wrapped grid exceeds the history.
+
+    The history copies generations into buffers it allocates once per grid
+    size, so watching a run allocates nothing per generation.
    */
   makeRunMonitor(maxGenerations, historyLength = GameOfLife.historyLength) {
-    const history = [];
+    let history = [];
+    let stored = 0;
+    let oldest = 0;
     let generations = 0;
+
+    function remember(grid) {
+      if (history.length === 0 || history[0].length !== grid.cells.length) {
+        history = Array.from({ length: historyLength }, () => new Uint8Array(grid.cells.length));
+      }
+
+      history[oldest].set(grid.cells);
+      oldest = (oldest + 1) % historyLength;
+      stored = Math.min(stored + 1, historyLength);
+    }
+
+    function remembers(grid) {
+      for (let i = 0; i < stored; i++) {
+        if (GameOfLife.sameCells(history[i], grid.cells)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
 
     return {
       start(seed) {
-        history.length = 0;
-        history.push(GameOfLife.stateKey(seed));
+        stored = 0;
+        oldest = 0;
         generations = 0;
+        remember(seed);
       },
 
       isStuck(nextGen) {
-        const key = GameOfLife.stateKey(nextGen);
         generations++;
 
-        if (generations >= maxGenerations || history.includes(key)) {
+        if (generations >= maxGenerations || remembers(nextGen)) {
           return true;
         }
 
-        history.push(key);
-
-        if (history.length > historyLength) {
-          history.shift();
-        }
+        remember(nextGen);
 
         return false;
       }
@@ -133,9 +147,18 @@ const GameOfLife = {
   },
 
 
-  /* Two grids of the same size share a key exactly when all cells match. */
-  stateKey(grid) {
-    return grid.flat().join("");
+  sameCells(cells, otherCells) {
+    if (cells.length !== otherCells.length) {
+      return false;
+    }
+
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i] !== otherCells[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 };
 

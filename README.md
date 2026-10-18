@@ -12,7 +12,7 @@ MMM-GameOfLife is probably one of the most useful modules for [MagicMirror<sup>2
 
 Conway’s Game of Life is a zero-player game. It’s evolution is determined by its initial state, requiring no further input. The most interesting fact about this game is that it represents another computability model. In fact MagicMirror<sup>2</sup> could be programmed by using the Game of Life. If you want more about the Game of Life you can start [here](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
 
-To show how the game evolves MMM-GameOfLife uses the [p5.js](https://p5js.org) framework to display the game grid. As soon as a new generation of the play grid is computed the new state is drawn. The computation of a new generation and the drawing of it happen in an infinite loop as fast as the underlying computer can. Although this looks very nice it may overheat your Raspberry Pi. You can limit the new calculations by using the `desiredFrameRate` property in the module’s config. A setting between `5` and `10` yields nice results without using too much CPU power.
+To show how the game evolves MMM-GameOfLife draws the game grid on a plain HTML canvas, without any additional library. Each generation is drawn as one pixel per cell and scaled up to the canvas in a single step, so drawing costs little even for many cells. Computing and drawing new generations still costs CPU power and may overheat your Raspberry Pi. You can limit the new calculations by using the `desiredFrameRate` property in the module’s config. A setting between `5` and `10` yields nice results without using too much CPU power. While the module is hidden, for example by a module switching pages, the game pauses and continues when it is shown again.
 
 The game will fill the playing grid with random living cells. Then it starts the evolution. Most of this configurations will result in an oscilation state after some generations. This means there will be no real movement on the screen since the same few states repeat over and over again. Whenever the module detects that a generation repeats one of the last 30 generations it restarts the game with a new set of random living cells. Patterns repeating after a longer time, such as a glider travelling around the edges of a large grid, are caught by `restartTimer`: after that time the game restarts regardless.
 
@@ -71,9 +71,7 @@ This module was inspired by a coding challenge on [YouTube](http://www.youtube.c
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/FWSR_7kZuYg/0.jpg)](http://www.youtube.com/watch?v=FWSR_7kZuYg "Coding Challenge #85: The Game of Life")
 
-It was interesting to include the p5js library into this module and write nice code. I think I ended up with not the most beautiful code. All logic happens in that `makeSketch` function. But I couldn’t think of a better way to write that code while giving it access to the `config` at the same time.
-
-If anyone has a better way to solve this problem feel free to improve my code and give me a notice.
+The first versions used the [p5.js](https://p5js.org) library from that challenge. Later versions replaced it with a plain canvas, which needs less CPU power and no script from a CDN.
 
 
 ## Contributing
