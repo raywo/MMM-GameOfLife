@@ -1,6 +1,6 @@
 {
   "name": "MMM-GameOfLife",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "description": "A Game of Life module for MagicMirror 2.",
   "repository": {
     "type": "git",
