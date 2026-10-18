@@ -133,7 +133,7 @@ async function measureOnce() {
     const { result } = await page.send("Runtime.evaluate", {
       expression: `JSON.stringify({
         moduleConfig: MM.getModules().withClass("MMM-GameOfLife")[0]?.config,
-        canvas: document.querySelector("#gameOfLifeWrapper canvas") !== null
+        canvas: document.querySelector(".MMM-GameOfLife canvas") !== null
       })`,
       returnByValue: true
     });

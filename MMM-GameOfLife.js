@@ -20,28 +20,40 @@ Module.register("MMM-GameOfLife", {
   },
 
 
+  /*
+    MagicMirror may call getDom more than once. The canvas and its
+    simulation belong to this instance and are created only on the first
+    call, so every call returns the same running canvas.
+   */
   getDom() {
-    const wrapper = document.createElement("div");
-    wrapper.id = "gameOfLifeWrapper";
+    if (!this.simulation) {
+      const canvas = document.createElement("canvas");
+      this.simulation = this.makeSimulation(canvas, this.config);
 
-    return wrapper;
+      if (!this.suspended) {
+        this.simulation.start();
+      }
+    }
+
+    return this.simulation.canvas;
   },
 
   getScripts() {
     return [
-      "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js",
       this.file("game-of-life.js")
     ];
   },
 
 
-  notificationReceived(notification) {
-    if (notification === "DOM_OBJECTS_CREATED") {
-      Log.info("DOM objects are created. Starting P5 …");
+  suspend() {
+    this.suspended = true;
+    this.simulation?.stop();
+  },
 
-      const sketch = this.makeSketch(this.config);
-      new p5(sketch, "gameOfLifeWrapper");
-    }
+
+  resume() {
+    this.suspended = false;
+    this.simulation?.start();
   },
 
 
@@ -68,83 +80,106 @@ Module.register("MMM-GameOfLife", {
   },
 
 
-  makeSketch(conf) {
-    return function(pFive) {
-      let currentGenGrid;
+  /*
+    Draws each generation as one pixel per cell into a small offscreen
+    canvas and scales it up to the visible canvas in a single draw call.
+    Dead cells stay transparent; the canvas background shows the dead color,
+    which makes "transparent" just another color. Cells touch each other,
+    as they did in the earlier p5.js rendering.
+   */
+  makeSimulation(canvas, conf) {
+    const { desiredFrameRate, resolution, canvasWidth, canvasHeight, restartTimer } = conf;
+    const { width: gridWidth, height: gridHeight } = GameOfLife.gridSize(canvasWidth, canvasHeight, resolution);
+    const runMonitor = GameOfLife.makeRunMonitor(restartTimer * desiredFrameRate);
+    const frameInterval = 1000 / desiredFrameRate;
 
-      /* user definable parameters */
-      const desiredFrameRate = conf.desiredFrameRate;
-      const resolution = conf.resolution;
-      const canvasWidth = conf.canvasWidth;
-      const canvasHeight = conf.canvasHeight;
-      const notAliveColorCode = conf.notAliveColorCode;
-      const aliveColorCode = conf.aliveColorCode;
-      const notAliveColor = getNotAliveColor(notAliveColorCode);
-      const restartTimer = conf.restartTimer;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    canvas.style.display = "block";
+    canvas.style.backgroundColor = conf.notAliveColorCode;
+    canvas.style.imageRendering = "pixelated";
 
-      /* computed parameters */
-      const { width: gridWidth, height: gridHeight } = GameOfLife.gridSize(canvasWidth, canvasHeight, resolution);
-      const random = () => pFive.random();
-      const runMonitor = GameOfLife.makeRunMonitor(restartTimer * desiredFrameRate);
+    const context = canvas.getContext("2d");
+    context.imageSmoothingEnabled = false;
 
+    const generationCanvas = document.createElement("canvas");
+    generationCanvas.width = gridWidth;
+    generationCanvas.height = gridHeight;
 
-      pFive.setup = function() {
-        pFive.frameRate(desiredFrameRate);
-        pFive.createCanvas(canvasWidth, canvasHeight);
+    const generationContext = generationCanvas.getContext("2d");
+    const image = generationContext.createImageData(gridWidth, gridHeight);
+    const pixels = new Uint32Array(image.data.buffer);
+    const alivePixel = pixelOf(conf.aliveColorCode);
 
-        currentGenGrid = GameOfLife.makeGrid(gridWidth, gridHeight);
-        GameOfLife.fillGridRandomly(currentGenGrid, random);
-        runMonitor.start(currentGenGrid);
-      };
+    let currentGen = GameOfLife.makeGrid(gridWidth, gridHeight);
+    let nextGen = GameOfLife.makeGrid(gridWidth, gridHeight);
+    let timer = null;
 
-
-      pFive.draw = function() {
-        pFive.clear();
-        pFive.background(notAliveColor);
-
-        drawGrid(currentGenGrid);
-        const nextGenGrid = GameOfLife.computeNextGeneration(currentGenGrid);
-
-        if (runMonitor.isStuck(nextGenGrid)) {
-          GameOfLife.fillGridRandomly(currentGenGrid, random);
-          runMonitor.start(currentGenGrid);
-        } else {
-          currentGenGrid = nextGenGrid;
-        }
-      };
+    GameOfLife.fillGridRandomly(currentGen, Math.random);
+    runMonitor.start(currentGen);
 
 
-      /*
-        "Private functions"
-       */
+    function step() {
+      draw(currentGen);
+      GameOfLife.computeNextGeneration(currentGen, nextGen);
 
-      function getNotAliveColor() {
-        if (notAliveColorCode === "transparent") {
-          return pFive.color("rgba(0, 0, 0, 0)");
-        } else {
-          return pFive.color(notAliveColorCode);
-        }
+      if (runMonitor.isStuck(nextGen)) {
+        GameOfLife.fillGridRandomly(currentGen, Math.random);
+        runMonitor.start(currentGen);
+      } else {
+        [currentGen, nextGen] = [nextGen, currentGen];
+      }
+    }
+
+
+    /* Subtracts the time a step takes, so the frame rate holds. */
+    function tick() {
+      const stepStart = performance.now();
+      step();
+      timer = setTimeout(tick, Math.max(0, frameInterval - (performance.now() - stepStart)));
+    }
+
+
+    function draw(grid) {
+      for (let i = 0; i < grid.cells.length; i++) {
+        pixels[i] = grid.cells[i] === 1 ? alivePixel : 0;
       }
 
+      generationContext.putImageData(image, 0, 0);
+      context.clearRect(0, 0, canvasWidth, canvasHeight);
+      context.drawImage(generationCanvas, 0, 0, gridWidth * resolution, gridHeight * resolution);
+    }
 
-      function drawGrid(grid) {
-        for (let x = 0; x < grid.length; x++) {
-          for (let y = 0; y < grid[x].length; y++) {
-            drawCell(grid, x, y);
-          }
+
+    /*
+      Lets the browser parse the CSS color once, in the byte order the
+      ImageData of this machine uses.
+     */
+    function pixelOf(colorCode) {
+      const probeCanvas = document.createElement("canvas");
+      probeCanvas.width = 1;
+      probeCanvas.height = 1;
+
+      const probe = probeCanvas.getContext("2d");
+      probe.fillStyle = colorCode;
+      probe.fillRect(0, 0, 1, 1);
+
+      return new Uint32Array(probe.getImageData(0, 0, 1, 1).data.buffer)[0];
+    }
+
+
+    return {
+      canvas,
+
+      start() {
+        if (timer === null) {
+          tick();
         }
-      }
+      },
 
-
-      function drawCell(grid, x, y) {
-        const aliveColor = pFive.color(aliveColorCode);
-
-        if (grid[x][y] === 1) {
-          pFive.fill(aliveColor);
-          pFive.stroke(aliveColor);
-
-          pFive.rect(x * resolution, y * resolution, resolution - 1, resolution - 1);
-        }
+      stop() {
+        clearTimeout(timer);
+        timer = null;
       }
     };
   }

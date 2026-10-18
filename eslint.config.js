@@ -24,7 +24,6 @@ module.exports = [
         ...globals.browser,
         Module: "readonly",
         Log: "readonly",
-        p5: "readonly",
         GameOfLife: "readonly"
       }
     }
