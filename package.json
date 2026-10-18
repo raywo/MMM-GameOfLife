@@ -27,7 +27,8 @@
   },
   "homepage": "https://github.com/raywo/MMM-GameOfLife",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test"
   },
   "packageManager": "pnpm@12.6.0",
   "devDependencies": {

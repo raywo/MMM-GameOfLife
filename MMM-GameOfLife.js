@@ -28,7 +28,8 @@ Module.register("MMM-GameOfLife", {
 
   getScripts() {
     return [
-      "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js"
+      "https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.0/p5.js",
+      this.file("game-of-life.js")
     ];
   },
 
@@ -77,17 +78,18 @@ Module.register("MMM-GameOfLife", {
       const notAliveColor = getNotAliveColor(notAliveColorCode);
 
       /* computed parameters */
-      const rows = canvasWidth / resolution;
-      const cols = canvasHeight / resolution;
+      const gridWidth = canvasWidth / resolution;
+      const gridHeight = canvasHeight / resolution;
+      const random = () => pFive.random();
 
 
       pFive.setup = function() {
         pFive.frameRate(desiredFrameRate);
         pFive.createCanvas(canvasWidth, canvasHeight);
 
-        lastGenGrid = makeGrid(rows, cols);
-        currentGenGrid = makeGrid(rows, cols);
-        fillGridRandomly(currentGenGrid);
+        lastGenGrid = GameOfLife.makeGrid(gridWidth, gridHeight);
+        currentGenGrid = GameOfLife.makeGrid(gridWidth, gridHeight);
+        GameOfLife.fillGridRandomly(currentGenGrid, random);
       };
 
 
@@ -96,10 +98,10 @@ Module.register("MMM-GameOfLife", {
         pFive.background(notAliveColor);
 
         drawGrid(currentGenGrid);
-        const nextGenGrid = computeNextGeneration(currentGenGrid);
+        const nextGenGrid = GameOfLife.computeNextGeneration(currentGenGrid);
 
-        if (representingSameState(nextGenGrid, currentGenGrid) || representingSameState(nextGenGrid, lastGenGrid)) {
-          fillGridRandomly(currentGenGrid);
+        if (GameOfLife.representingSameState(nextGenGrid, currentGenGrid) || GameOfLife.representingSameState(nextGenGrid, lastGenGrid)) {
+          GameOfLife.fillGridRandomly(currentGenGrid, random);
         } else {
           lastGenGrid = currentGenGrid;
           currentGenGrid = nextGenGrid;
@@ -120,104 +122,24 @@ Module.register("MMM-GameOfLife", {
       }
 
 
-      function makeGrid(rows, cols) {
-        const array = new Array(rows);
-
-        for (let i = 0; i < rows; i++) {
-          array[i] = new Array(cols);
-        }
-
-        return array;
-      }
-
-
-      function fillGridRandomly(grid) {
-        for (let i = 0; i < grid.length; i++) {
-          for (let j = 0; j < grid[i].length; j++) {
-            grid[i][j] = pFive.floor(pFive.random(2));
-          }
-        }
-      }
-
-
       function drawGrid(grid) {
-        for (let i = 0; i < grid.length; i++) {
-          for (let j = 0; j < grid[i].length; j++) {
-            drawCell(grid, i, j);
+        for (let x = 0; x < grid.length; x++) {
+          for (let y = 0; y < grid[x].length; y++) {
+            drawCell(grid, x, y);
           }
         }
       }
 
 
-      function drawCell(grid, i, j) {
+      function drawCell(grid, x, y) {
         const aliveColor = pFive.color(aliveColorCode);
 
-        if (grid[i][j] === 1) {
+        if (grid[x][y] === 1) {
           pFive.fill(aliveColor);
           pFive.stroke(aliveColor);
 
-          const x = i * resolution;
-          const y = j * resolution;
-          pFive.rect(x, y, resolution - 1, resolution - 1);
+          pFive.rect(x * resolution, y * resolution, resolution - 1, resolution - 1);
         }
-      }
-
-
-      function computeNextGeneration(currentGen) {
-        const nextGen = makeGrid(rows, cols);
-
-        for (let i = 0; i < rows; i++) {
-          for (let j = 0; j < cols; j++) {
-            computeNextGenCell(i, j, currentGen, nextGen);
-          }
-        }
-
-        return nextGen;
-      }
-
-
-      function computeNextGenCell(i, j, currentGen, nextGen) {
-        const currentState = currentGen[i][j];
-        const aliveNeighbors = countAliveNeighbors(currentGen, i, j);
-
-        if (currentState === 0 && aliveNeighbors === 3) {
-          nextGen[i][j] = 1;
-        } else if (currentState === 1 && (aliveNeighbors < 2 || aliveNeighbors > 3)) {
-          nextGen[i][j] = 0;
-        } else {
-          nextGen[i][j] = currentState;
-        }
-      }
-
-
-      function countAliveNeighbors(grid, x, y) {
-        let count = 0;
-
-        for (let i = -1; i < 2; i++) {
-          for (let j = -1; j < 2; j++) {
-            const row = (x + i + rows) % rows;
-            const col = (y + j + cols) % cols;
-
-            count += grid[row][col];
-          }
-        }
-
-        count -= grid[x][y];
-
-        return count;
-      }
-
-
-      function representingSameState(leftGrid, rightGrid) {
-        for (let i = 0; i < leftGrid.length; i++) {
-          for (let j = 0; j < leftGrid.length; j++) {
-            if (leftGrid[i][j] !== rightGrid[i][j]) {
-              return false;
-            }
-          }
-        }
-
-        return true;
       }
     };
   }
