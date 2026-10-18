@@ -91,16 +91,51 @@ const GameOfLife = {
   },
 
 
-  representingSameState(leftGrid, rightGrid) {
-    for (let i = 0; i < leftGrid.length; i++) {
-      for (let j = 0; j < leftGrid.length; j++) {
-        if (leftGrid[i][j] !== rightGrid[i][j]) {
-          return false;
-        }
-      }
-    }
+  /* How many past generations a run compares each new generation with. */
+  historyLength: 30,
 
-    return true;
+
+  /*
+    Watches one run from its seed. A run is stuck when a new generation
+    repeats one of the last historyLength generations, which covers still
+    lifes and oscillators up to that period, or when it has lasted
+    maxGenerations generations. The limit catches what the history misses,
+    such as a glider whose period on the wrapped grid exceeds the history.
+   */
+  makeRunMonitor(maxGenerations, historyLength = GameOfLife.historyLength) {
+    const history = [];
+    let generations = 0;
+
+    return {
+      start(seed) {
+        history.length = 0;
+        history.push(GameOfLife.stateKey(seed));
+        generations = 0;
+      },
+
+      isStuck(nextGen) {
+        const key = GameOfLife.stateKey(nextGen);
+        generations++;
+
+        if (generations >= maxGenerations || history.includes(key)) {
+          return true;
+        }
+
+        history.push(key);
+
+        if (history.length > historyLength) {
+          history.shift();
+        }
+
+        return false;
+      }
+    };
+  },
+
+
+  /* Two grids of the same size share a key exactly when all cells match. */
+  stateKey(grid) {
+    return grid.flat().join("");
   }
 };
 
