@@ -10,6 +10,7 @@ services:
       - "8080:8080"
     environment:
       TZ: Europe/Berlin
+      MM_CONFIG_FILE: ${MM_CONFIG_FILE:-}
     volumes:
       - ./dev/magicmirror:/opt/magic_mirror/config
       - ./:/opt/magic_mirror/modules/MMM-GameOfLife:ro

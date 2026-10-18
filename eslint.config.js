@@ -54,6 +54,12 @@ module.exports = [
     }
   },
   {
+    files: ["dev/**/*.mjs"],
+    languageOptions: {
+      globals: globals.node
+    }
+  },
+  {
     files: ["eslint.config.js"],
     languageOptions: {
       sourceType: "commonjs",
