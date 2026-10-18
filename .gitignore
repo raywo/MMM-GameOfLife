@@ -95,3 +95,7 @@ package-lock.json
 
 ## Apple stuff
 .AppleDouble/
+
+## MagicMirror files generated at startup (compose.yaml)
+dev/magicmirror/basepath.js
+dev/magicmirror/custom.css
