@@ -78,8 +78,7 @@ Module.register("MMM-GameOfLife", {
       const notAliveColor = getNotAliveColor(notAliveColorCode);
 
       /* computed parameters */
-      const gridWidth = canvasWidth / resolution;
-      const gridHeight = canvasHeight / resolution;
+      const { width: gridWidth, height: gridHeight } = GameOfLife.gridSize(canvasWidth, canvasHeight, resolution);
       const random = () => pFive.random();
 
 
