@@ -10,6 +10,9 @@ Module.register("MMM-GameOfLife", {
     canvasHeight: 300,
     notAliveColorCode: "#000",
     aliveColorCode: "#aaa",
+    oldAliveColorCode: null,
+    agingGenerations: 20,
+    afterglow: 0,
     restartTimer: 600
   },
 
@@ -77,6 +80,9 @@ Module.register("MMM-GameOfLife", {
     if (this.config.restartTimer < 1) {
       this.config.restartTimer = 1;
     }
+
+    this.config.agingGenerations = Math.min(Math.max(this.config.agingGenerations, 1), 100);
+    this.config.afterglow = Math.min(Math.max(this.config.afterglow, 0), 100);
   },
 
 
@@ -86,6 +92,12 @@ Module.register("MMM-GameOfLife", {
     Dead cells stay transparent; the canvas background shows the dead color,
     which makes "transparent" just another color. Cells touch each other,
     as they did in the earlier p5.js rendering.
+
+    The color of a cell comes from its age: living cells look up their
+    color by aliveFor, dead cells by aliveFor and deadFor. Both palettes
+    are computed once, so drawing a cell stays a single lookup. Cells
+    alive for more than agingGenerations + 1 generations all have the old
+    color, so the afterglow palette stops at that row.
    */
   makeSimulation(canvas, conf) {
     const { desiredFrameRate, resolution, canvasWidth, canvasHeight, restartTimer } = conf;
@@ -109,14 +121,27 @@ Module.register("MMM-GameOfLife", {
     const generationContext = generationCanvas.getContext("2d");
     const image = generationContext.createImageData(gridWidth, gridHeight);
     const pixels = new Uint32Array(image.data.buffer);
-    const alivePixel = pixelOf(conf.aliveColorCode);
+    const aliveColor = rgbaOf(conf.aliveColorCode);
+    const oldAliveColor = conf.oldAliveColorCode ? rgbaOf(conf.oldAliveColorCode) : aliveColor;
+    const ageColors = GameOfLife.agePalette(aliveColor, oldAliveColor, conf.agingGenerations);
+    const lastAgeRow = conf.agingGenerations + 1;
+    const alivePixels = pixelsOf(ageColors);
+    const deadPixels = pixelsOf(GameOfLife.afterglowPalette(ageColors.slice(0, lastAgeRow + 1), conf.afterglow).flat());
 
     let currentGen = GameOfLife.makeGrid(gridWidth, gridHeight);
     let nextGen = GameOfLife.makeGrid(gridWidth, gridHeight);
+    const ages = GameOfLife.makeCellAges(gridWidth, gridHeight);
     let timer = null;
 
-    GameOfLife.fillGridRandomly(currentGen, Math.random);
-    runMonitor.start(currentGen);
+    seed();
+
+
+    function seed() {
+      GameOfLife.fillGridRandomly(currentGen, Math.random);
+      GameOfLife.resetCellAges(ages);
+      GameOfLife.updateCellAges(ages, currentGen);
+      runMonitor.start(currentGen);
+    }
 
 
     function step() {
@@ -124,10 +149,10 @@ Module.register("MMM-GameOfLife", {
       GameOfLife.computeNextGeneration(currentGen, nextGen);
 
       if (runMonitor.isStuck(nextGen)) {
-        GameOfLife.fillGridRandomly(currentGen, Math.random);
-        runMonitor.start(currentGen);
+        seed();
       } else {
         [currentGen, nextGen] = [nextGen, currentGen];
+        GameOfLife.updateCellAges(ages, currentGen);
       }
     }
 
@@ -141,8 +166,12 @@ Module.register("MMM-GameOfLife", {
 
 
     function draw(grid) {
+      const { aliveFor, deadFor } = ages;
+
       for (let i = 0; i < grid.cells.length; i++) {
-        pixels[i] = grid.cells[i] === 1 ? alivePixel : 0;
+        pixels[i] = grid.cells[i] === 1
+          ? alivePixels[aliveFor[i]]
+          : deadPixels[Math.min(aliveFor[i], lastAgeRow) * 256 + deadFor[i]];
       }
 
       generationContext.putImageData(image, 0, 0);
@@ -151,11 +180,8 @@ Module.register("MMM-GameOfLife", {
     }
 
 
-    /*
-      Lets the browser parse the CSS color once, in the byte order the
-      ImageData of this machine uses.
-     */
-    function pixelOf(colorCode) {
+    /* Lets the browser parse the CSS color into [red, green, blue, alpha]. */
+    function rgbaOf(colorCode) {
       const probeCanvas = document.createElement("canvas");
       probeCanvas.width = 1;
       probeCanvas.height = 1;
@@ -164,7 +190,21 @@ Module.register("MMM-GameOfLife", {
       probe.fillStyle = colorCode;
       probe.fillRect(0, 0, 1, 1);
 
-      return new Uint32Array(probe.getImageData(0, 0, 1, 1).data.buffer)[0];
+      return Array.from(probe.getImageData(0, 0, 1, 1).data);
+    }
+
+
+    /*
+      Packs colors into pixels in the byte order the ImageData of this
+      machine uses, by writing their bytes through the same kind of view.
+     */
+    function pixelsOf(colors) {
+      const palette = new Uint32Array(colors.length);
+      const bytes = new Uint8ClampedArray(palette.buffer);
+
+      colors.forEach((color, i) => bytes.set(color, i * 4));
+
+      return palette;
     }
 
 

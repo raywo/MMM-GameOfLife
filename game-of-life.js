@@ -1,5 +1,6 @@
 /*
-  Pure game logic without browser or rendering dependencies.
+  Pure game logic without browser or rendering dependencies. The colors it
+  computes are plain numbers; drawing them is up to the module.
 
   A grid holds its width, its height and its cells in one Uint8Array, row by
   row: the cell at (x, y) is cells[y * width + x], the same layout as the
@@ -144,6 +145,81 @@ const GameOfLife = {
         return false;
       }
     };
+  },
+
+
+  /*
+    Counts for every cell how many generations it has been alive (aliveFor)
+    and how many generations ago it died (deadFor). A dead cell keeps its
+    aliveFor, so its afterglow can start from the color it had last. Both
+    stay 0 for a cell that has not lived since the last reset. The counters stop at 255, the
+    largest value a Uint8Array holds, so one palette entry per value covers
+    them.
+   */
+  makeCellAges(width, height) {
+    return { aliveFor: new Uint8Array(width * height), deadFor: new Uint8Array(width * height) };
+  },
+
+
+  resetCellAges(ages) {
+    ages.aliveFor.fill(0);
+    ages.deadFor.fill(0);
+  },
+
+
+  /* Advances the ages by one generation, the one grid now holds. */
+  updateCellAges(ages, grid) {
+    const { aliveFor, deadFor } = ages;
+
+    for (let i = 0; i < grid.cells.length; i++) {
+      if (grid.cells[i] === 1) {
+        aliveFor[i] = deadFor[i] > 0 ? 1 : Math.min(aliveFor[i] + 1, 255);
+        deadFor[i] = 0;
+      } else if (deadFor[i] > 0) {
+        deadFor[i] = Math.min(deadFor[i] + 1, 255);
+      } else if (aliveFor[i] > 0) {
+        deadFor[i] = 1;
+      }
+    }
+  },
+
+
+  /*
+    Colors are [red, green, blue, alpha] with each channel from 0 to 255.
+    Returns one color per aliveFor value: a newborn cell (aliveFor 1) has
+    youngColor, a cell alive for agingGenerations more generations has
+    oldColor, and the colors in between blend evenly.
+   */
+  agePalette(youngColor, oldColor, agingGenerations) {
+    return Array.from({ length: 256 }, (_, aliveFor) => {
+      const progress = Math.min(Math.max(aliveFor - 1, 0) / agingGenerations, 1);
+
+      return GameOfLife.blendColors(youngColor, oldColor, progress);
+    });
+  },
+
+
+  /*
+    Returns one row per color in ageColors, the colors a cell had by its
+    aliveFor, and in each row one color per deadFor value: a cell that just
+    died shows its last color at half its alpha and fades out evenly over
+    afterglow generations. Afterwards, and for cells that have not lived,
+    the color is transparent.
+   */
+  afterglowPalette(ageColors, afterglow) {
+    return ageColors.map(([red, green, blue, alpha]) => Array.from({ length: 256 }, (_, deadFor) => {
+      if (deadFor === 0 || deadFor > afterglow) {
+        return [0, 0, 0, 0];
+      }
+
+      return [red, green, blue, Math.round(alpha * 0.5 * (afterglow - deadFor + 1) / afterglow)];
+    }));
+  },
+
+
+  /* progress 0 returns from, progress 1 returns to. */
+  blendColors(from, to, progress) {
+    return from.map((channel, i) => Math.round(channel + (to[i] - channel) * progress));
   },
 
 
