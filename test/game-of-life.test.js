@@ -24,6 +24,31 @@ function gridFromPicture(...lines) {
 }
 
 
+describe("gridSize", () => {
+  it("divides the canvas into cells of resolution pixels", () => {
+    assert.deepEqual(GameOfLife.gridSize(300, 200, 10), { width: 30, height: 20 });
+  });
+
+  it("uses only whole cells when the canvas is not a multiple of resolution", () => {
+    const size = GameOfLife.gridSize(255, 307, 10);
+
+    assert.deepEqual(size, { width: 25, height: 30 });
+    assert.doesNotThrow(() => GameOfLife.makeGrid(size.width, size.height));
+  });
+
+  it("keeps at least one cell per axis when resolution exceeds the canvas", () => {
+    const size = GameOfLife.gridSize(50, 80, 60);
+
+    assert.deepEqual(size, { width: 1, height: 1 });
+
+    const grid = GameOfLife.makeGrid(size.width, size.height);
+    GameOfLife.fillGridRandomly(grid, () => 0.9);
+
+    assert.doesNotThrow(() => GameOfLife.computeNextGeneration(grid));
+  });
+});
+
+
 describe("makeGrid", () => {
   it("creates width columns of height cells", () => {
     const grid = GameOfLife.makeGrid(3, 5);

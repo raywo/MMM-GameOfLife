@@ -7,6 +7,19 @@
  */
 const GameOfLife = {
 
+  /*
+    Only whole cells fit on the canvas; a remainder stays empty. The grid
+    keeps at least one cell per axis, because an empty grid cannot be
+    computed.
+   */
+  gridSize(canvasWidth, canvasHeight, resolution) {
+    return {
+      width: Math.max(1, Math.floor(canvasWidth / resolution)),
+      height: Math.max(1, Math.floor(canvasHeight / resolution))
+    };
+  },
+
+
   makeGrid(width, height) {
     const grid = new Array(width);
 
