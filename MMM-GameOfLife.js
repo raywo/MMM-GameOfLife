@@ -9,7 +9,8 @@ Module.register("MMM-GameOfLife", {
     canvasWidth: 300,
     canvasHeight: 300,
     notAliveColorCode: "#000",
-    aliveColorCode: "#aaa"
+    aliveColorCode: "#aaa",
+    restartTimer: 600
   },
 
 
@@ -60,13 +61,16 @@ Module.register("MMM-GameOfLife", {
     if (this.config.canvasHeight < 50) {
       this.config.canvasHeight = 50;
     }
+
+    if (this.config.restartTimer < 1) {
+      this.config.restartTimer = 1;
+    }
   },
 
 
   makeSketch(conf) {
     return function(pFive) {
       let currentGenGrid;
-      let lastGenGrid;
 
       /* user definable parameters */
       const desiredFrameRate = conf.desiredFrameRate;
@@ -76,19 +80,21 @@ Module.register("MMM-GameOfLife", {
       const notAliveColorCode = conf.notAliveColorCode;
       const aliveColorCode = conf.aliveColorCode;
       const notAliveColor = getNotAliveColor(notAliveColorCode);
+      const restartTimer = conf.restartTimer;
 
       /* computed parameters */
       const { width: gridWidth, height: gridHeight } = GameOfLife.gridSize(canvasWidth, canvasHeight, resolution);
       const random = () => pFive.random();
+      const runMonitor = GameOfLife.makeRunMonitor(restartTimer * desiredFrameRate);
 
 
       pFive.setup = function() {
         pFive.frameRate(desiredFrameRate);
         pFive.createCanvas(canvasWidth, canvasHeight);
 
-        lastGenGrid = GameOfLife.makeGrid(gridWidth, gridHeight);
         currentGenGrid = GameOfLife.makeGrid(gridWidth, gridHeight);
         GameOfLife.fillGridRandomly(currentGenGrid, random);
+        runMonitor.start(currentGenGrid);
       };
 
 
@@ -99,10 +105,10 @@ Module.register("MMM-GameOfLife", {
         drawGrid(currentGenGrid);
         const nextGenGrid = GameOfLife.computeNextGeneration(currentGenGrid);
 
-        if (GameOfLife.representingSameState(nextGenGrid, currentGenGrid) || GameOfLife.representingSameState(nextGenGrid, lastGenGrid)) {
+        if (runMonitor.isStuck(nextGenGrid)) {
           GameOfLife.fillGridRandomly(currentGenGrid, random);
+          runMonitor.start(currentGenGrid);
         } else {
-          lastGenGrid = currentGenGrid;
           currentGenGrid = nextGenGrid;
         }
       };
