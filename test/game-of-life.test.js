@@ -391,3 +391,182 @@ describe("makeRunMonitor", () => {
     assert.equal(monitor.isStuck(next), false);
   });
 });
+
+
+describe("updateCellAges", () => {
+  it("counts a newborn cell as alive for one generation", () => {
+    const grid = gridFromPicture("#.");
+    const ages = GameOfLife.makeCellAges(2, 1);
+
+    GameOfLife.updateCellAges(ages, grid);
+
+    assert.deepEqual(ages.aliveFor, Uint8Array.of(1, 0));
+    assert.deepEqual(ages.deadFor, Uint8Array.of(0, 0));
+  });
+
+  it("counts the generations a cell stays alive", () => {
+    const grid = gridFromPicture("#");
+    const ages = GameOfLife.makeCellAges(1, 1);
+
+    for (let i = 0; i < 3; i++) {
+      GameOfLife.updateCellAges(ages, grid);
+    }
+
+    assert.deepEqual(ages.aliveFor, Uint8Array.of(3));
+  });
+
+  it("counts the generations since a cell died", () => {
+    const ages = GameOfLife.makeCellAges(1, 1);
+
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+
+    assert.deepEqual(ages.deadFor, Uint8Array.of(2));
+  });
+
+  it("remembers how long a dead cell lived", () => {
+    const ages = GameOfLife.makeCellAges(1, 1);
+
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+
+    assert.deepEqual(ages.aliveFor, Uint8Array.of(2));
+  });
+
+  it("restarts the count when a dead cell is born again", () => {
+    const ages = GameOfLife.makeCellAges(1, 1);
+
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+    GameOfLife.updateCellAges(ages, gridFromPicture("#"));
+
+    assert.deepEqual(ages.aliveFor, Uint8Array.of(1));
+    assert.deepEqual(ages.deadFor, Uint8Array.of(0));
+  });
+
+  it("leaves cells that have never lived at zero", () => {
+    const ages = GameOfLife.makeCellAges(1, 1);
+
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+    GameOfLife.updateCellAges(ages, gridFromPicture("."));
+
+    assert.deepEqual(ages.deadFor, Uint8Array.of(0));
+  });
+
+  it("stops counting at 255", () => {
+    const ages = GameOfLife.makeCellAges(2, 1);
+    ages.aliveFor[0] = 255;
+    ages.deadFor[1] = 255;
+
+    GameOfLife.updateCellAges(ages, gridFromPicture("#."));
+
+    assert.deepEqual(ages.aliveFor, Uint8Array.of(255, 0));
+    assert.deepEqual(ages.deadFor, Uint8Array.of(0, 255));
+  });
+});
+
+
+describe("resetCellAges", () => {
+  it("forgets every age", () => {
+    const ages = GameOfLife.makeCellAges(2, 1);
+    ages.aliveFor[0] = 4;
+    ages.deadFor[1] = 2;
+
+    GameOfLife.resetCellAges(ages);
+
+    assert.deepEqual(ages, GameOfLife.makeCellAges(2, 1));
+  });
+});
+
+
+describe("agePalette", () => {
+  const young = [200, 100, 0, 255];
+  const old = [0, 100, 200, 255];
+
+  it("has one color per possible aliveFor value", () => {
+    assert.equal(GameOfLife.agePalette(young, old, 10).length, 256);
+  });
+
+  it("gives a newborn cell the young color", () => {
+    assert.deepEqual(GameOfLife.agePalette(young, old, 10)[1], young);
+  });
+
+  it("blends evenly from the young to the old color", () => {
+    assert.deepEqual(GameOfLife.agePalette(young, old, 4)[3], [100, 100, 100, 255]);
+  });
+
+  it("keeps the old color once a cell has aged agingGenerations generations", () => {
+    const palette = GameOfLife.agePalette(young, old, 4);
+
+    assert.deepEqual(palette[5], old);
+    assert.deepEqual(palette[255], old);
+  });
+
+  it("gives every cell the same color when young and old color match", () => {
+    const palette = GameOfLife.agePalette(young, young, 20);
+
+    palette.forEach(color => assert.deepEqual(color, young));
+  });
+});
+
+
+describe("afterglowPalette", () => {
+  const young = [170, 170, 170, 255];
+  const old = [17, 51, 119, 255];
+
+  it("has one row per age color and one color per possible deadFor value", () => {
+    const palette = GameOfLife.afterglowPalette([young, old], 3);
+
+    assert.equal(palette.length, 2);
+    assert.equal(palette[1].length, 256);
+  });
+
+  it("keeps cells that have never lived transparent", () => {
+    assert.deepEqual(GameOfLife.afterglowPalette([young], 3)[0][0], [0, 0, 0, 0]);
+  });
+
+  it("starts at half the alpha and fades out evenly", () => {
+    const alphas = GameOfLife.afterglowPalette([young], 4)[0].slice(1, 5).map(glow => glow[3]);
+
+    assert.deepEqual(alphas, [128, 96, 64, 32]);
+  });
+
+  it("fades out in the color the cell had last", () => {
+    const palette = GameOfLife.afterglowPalette([young, old], 2);
+
+    assert.deepEqual(palette[0][1].slice(0, 3), [170, 170, 170]);
+    assert.deepEqual(palette[1][1].slice(0, 3), [17, 51, 119]);
+  });
+
+  it("turns transparent after afterglow generations", () => {
+    const palette = GameOfLife.afterglowPalette([young], 2)[0];
+
+    assert.deepEqual(palette[3], [0, 0, 0, 0]);
+    assert.deepEqual(palette[255], [0, 0, 0, 0]);
+  });
+
+  it("keeps every dead cell transparent when afterglow is 0", () => {
+    const palette = GameOfLife.afterglowPalette([young, old], 0);
+
+    assert.ok(palette.flat().every(glow => glow[3] === 0));
+  });
+});
+
+
+describe("blendColors", () => {
+  it("returns from at progress 0 and to at progress 1", () => {
+    const from = [0, 0, 0, 0];
+    const to = [255, 255, 255, 255];
+
+    assert.deepEqual(GameOfLife.blendColors(from, to, 0), from);
+    assert.deepEqual(GameOfLife.blendColors(from, to, 1), to);
+  });
+
+  it("rounds each channel to a whole number", () => {
+    assert.deepEqual(GameOfLife.blendColors([0, 0, 0, 0], [1, 3, 5, 7], 0.5), [1, 2, 3, 4]);
+  });
+});
