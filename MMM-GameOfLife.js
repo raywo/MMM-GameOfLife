@@ -81,8 +81,8 @@ Module.register("MMM-GameOfLife", {
       this.config.restartTimer = 1;
     }
 
-    this.config.agingGenerations = Math.min(Math.max(this.config.agingGenerations, 1), 100);
-    this.config.afterglow = Math.min(Math.max(this.config.afterglow, 0), 100);
+    this.config.agingGenerations = Math.min(Math.max(Math.round(this.config.agingGenerations), 1), 100);
+    this.config.afterglow = Math.min(Math.max(Math.round(this.config.afterglow), 0), 100);
   },
 
 
