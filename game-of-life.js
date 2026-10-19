@@ -152,9 +152,9 @@ const GameOfLife = {
     Counts for every cell how many generations it has been alive (aliveFor)
     and how many generations ago it died (deadFor). A dead cell keeps its
     aliveFor, so its afterglow can start from the color it had last. Both
-    stay 0 for a cell that has not lived since the last reset. The counters stop at 255, the
-    largest value a Uint8Array holds, so one palette entry per value covers
-    them.
+    stay 0 for a cell that has not lived since the last reset. The counters
+    stop at 255, the largest value a Uint8Array holds, so one palette entry
+    per value covers them.
    */
   makeCellAges(width, height) {
     return { aliveFor: new Uint8Array(width * height), deadFor: new Uint8Array(width * height) };
