@@ -1,7 +1,8 @@
 {
-  "name": "MMM-GameOfLife",
+  "name": "mmm-gameoflife",
   "version": "2.0.0",
-  "description": "A Game of Life module for MagicMirror 2.",
+  "description": "A Game of Life module for MagicMirror².",
+  "type": "commonjs",
   "repository": {
     "type": "git",
     "url": "https://github.com/raywo/MMM-GameOfLife"
@@ -18,16 +19,13 @@
     "email": "ray@skillbird.de",
     "url": "https://github.com/raywo"
   },
-  "contributors": [
-    "https://github.com/raywo/MMM-GameOfLife/graphs/contributors"
-  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/raywo/MMM-GameOfLife/issues"
   },
   "homepage": "https://github.com/raywo/MMM-GameOfLife",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint",
     "test": "node --test"
   },
   "packageManager": "pnpm@12.6.0",

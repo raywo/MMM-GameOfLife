@@ -40,7 +40,6 @@
 atlassian-ide-plugin.xml
 
 .idea
-.jshintrc
 
 # Crashlytics plugin (for Android Studio and IntelliJ)
 com_crashlytics_export_strings.xml

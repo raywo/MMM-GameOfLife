@@ -1,7 +1,8 @@
 const js = require("@eslint/js");
 const globals = require("globals");
+const { defineConfig } = require("eslint/config");
 
-module.exports = [
+module.exports = defineConfig([
   {
     ignores: ["dev/magicmirror/basepath.js"]
   },
@@ -65,4 +66,4 @@ module.exports = [
       globals: globals.node
     }
   }
-];
+]);
